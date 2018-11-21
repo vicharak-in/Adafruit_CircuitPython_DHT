@@ -159,6 +159,45 @@ class DHTBase:
                 pulses.append(min(pulses_micro_sec, 65535))
         return pulses
 
+    def _get_pulses_libgpiod(self):
+        """ _get_pulses_libgpiod implements the communication protocol for
+        DHT11 and DHT22 type devices using a C wrapper around libgpiod.
+        It sends a start signal of a specific length then invokes a separate
+        libgpiod_pulsein process to listen and measure the return signal lengths.
+
+        return pulses (array.array uint16) contains alternating high and low
+        transition times starting with a low transition time.  Normally
+        pulses will have 81 elements for the DHT11/22 type devices.
+        """
+        import subprocess
+        from subprocess import PIPE
+        pulses = array.array('H')
+        with DigitalInOut(self._pin) as dhtpin:
+            # Signal by setting pin high, then low, and releasing
+            dhtpin.direction = Direction.OUTPUT
+            dhtpin.value = True
+            time.sleep(0.1)
+            dhtpin.value = False
+            time.sleep(0.001)
+            # timestamp = time.monotonic() # take timestamp
+            dhtval = True   # start with dht pin true because its pulled up
+            dhtpin.direction = Direction.INPUT
+            # dhtpin.pull = Pull.UP
+            libgpiod_result = subprocess.run(
+                    ["libgpiod_pulsein", "--pulses", "81", "gpiochip0", str(self._pin.id)],
+                    stdout=PIPE,
+                    stderr=PIPE
+            )
+            pulses = []
+            lines = libgpiod_result.stdout.split(b"\n")
+            for line in lines:
+                val_and_time = line.split(b"\t")
+                if len(val_and_time) == 2:
+                    pulses.append(int(val_and_time[1]))
+
+        # Return last 81 pulses:
+        return pulses[-81:]
+
     def measure(self):
         """ measure runs the communications to the DHT11/22 type device.
             if successful, the class properties temperature and humidity will
@@ -178,8 +217,9 @@ class DHTBase:
             if _USE_PULSEIO:
                 pulses = self._get_pulses_pulseio()
             else:
-                pulses = self._get_pulses_bitbang()
-            #print(len(pulses), "pulses:", [x for x in pulses])
+                # pulses = self._get_pulses_bitbang()
+                pulses = self._get_pulses_libgpiod()
+            # print(len(pulses), "pulses:", [x for x in pulses])
 
             if len(pulses) >= 80:
                 buf = array.array('B')
