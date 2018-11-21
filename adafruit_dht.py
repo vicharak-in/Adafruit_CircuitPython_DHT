@@ -184,7 +184,7 @@ class DHTBase:
             dhtpin.direction = Direction.INPUT
             # dhtpin.pull = Pull.UP
             libgpiod_result = subprocess.run(
-                    ["libgpiod_pulsein", "--pulses", "81", "gpiochip0", str(self._pin.id)],
+                    ["libgpiod_pulsein", "--pulses", "81", "--timeout", "250000", "gpiochip0", str(self._pin.id)],
                     stdout=PIPE,
                     stderr=PIPE
             )
