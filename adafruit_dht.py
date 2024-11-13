@@ -235,8 +235,8 @@ class DHTBase:
             if self._dht11:
                 # humidity is 1 byte
                 new_humidity = buf[0]
-                # temperature is 1 byte
-                new_temperature = buf[2]
+                # temperature is 1 byte for integral and 1 byte for 1st decimal place
+                new_temperature = buf[2] + (buf[3] & 0x0F) / 10
             else:
                 # humidity is 2 bytes
                 new_humidity = ((buf[0] << 8) | buf[1]) / 10
