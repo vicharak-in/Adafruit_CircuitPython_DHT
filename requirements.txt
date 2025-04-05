@@ -3,3 +3,4 @@
 # SPDX-License-Identifier: Unlicense
 
 Adafruit-Blinka @ git+https://github.com/vicharak-in/Adafruit_Blinka@vicharak
+gpiod
